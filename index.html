@@ -1,1 +1,91 @@
-Hello W
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>D3 Page Template</title>
+        <script type="text/javascript" src="//d3js.org/d3.v3.min.js"></script>
+    </head>
+    <style>
+        .bar {
+          fill: steelblue;
+        }
+        
+        .axis--x path {
+          display: none;
+        }
+    </style>
+    <h2>Répartition des appels dans les différentes catégories</h2>
+    <svg width="1360" height="700"></svg>
+    <body>
+    <h2><a href="heat.html">HeatMap Ici</a></h2>
+    <script type="text/javascript">
+        var svg = d3.select("svg"),
+            margin = {top: 20, right: 40, bottom: 200, left: 100},
+            width = +svg.attr("width") - margin.left - margin.right,
+            height = +svg.attr("height") - margin.top - margin.bottom;
+        
+        var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+            y = d3.scaleLinear().rangeRound([height, 0]);
+        
+        var g = svg.append("g")
+            .attr("transform", "translate(" + 
+                margin.left + "," + margin.top + ")");
+
+
+        var dataset;
+
+        d3.csv("911_clean.csv", function(data) {
+            dataset = data;
+
+            console.log(data[1]);
+
+            var nested_data = d3.nest()
+                .key(function(d) { return d.description; })
+                .rollup(function(calls) { return calls.length; })
+                .entries(data)
+                .sort(function(a, b){ 
+                    return d3.descending(a.value, b.value); });
+
+            console.log(nested_data);
+
+            x.domain(nested_data.map(function(d) { 
+                return d.key; 
+            }));
+            y.domain([0, d3.max(nested_data, function(d) { 
+                return d.value; 
+            })]);
+
+            g.append("g")
+                .attr("class", "axis axis--x")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", "-.55em")
+                .attr("transform", "rotate(-90)" );
+            
+            g.append("g")
+                .attr("class", "axis axis--y")
+                .call(d3.axisLeft(y).ticks(10))
+              .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 6)
+                .attr("dy", "0.71em")
+                .attr("text-anchor", "end")
+                .text("Frequency");
+
+            g.selectAll(".bar")
+                .data(nested_data)
+                .enter().append("rect")
+                  .attr("class", "bar")
+                  .attr("x", function(d) { return x(d.key); })
+                  .attr("y", function(d) { return y(d.value); })
+                  .attr("width", x.bandwidth())
+                  .attr("height", function(d) { 
+                      return height - y(d.value); });
+
+        });
+    </script>
+    </body>
+</html>
