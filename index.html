@@ -39,13 +39,13 @@
     }
 
     #barchart {
-        background-color: green;
+        background-color: rgb(200,255,200);
         width: 440px; /* 400 */
         height: 350px;
     }
 
     #map {
-        background-color: yellow;
+        background-color: rgb(200,200,255);
         width: 800px; /* 800 */
         height: 400px; /* 550 */
     }
@@ -74,12 +74,10 @@
         <div id="sunburst" class="container"></div>
         <div id="heat" class="container"></div>
     </div>
-<!--
     <div class="vizrow">
         <div id="barchart" class="container">barchart</div>
         <div id="map" class="container">map</div>
     </div>
-    -->
 
 <script>
 d3.csv("911_clean.csv", function(error, csv) {
