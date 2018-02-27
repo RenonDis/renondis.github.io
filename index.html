@@ -74,10 +74,12 @@
         <div id="sunburst" class="container"></div>
         <div id="heat" class="container"></div>
     </div>
+<!--
     <div class="vizrow">
         <div id="barchart" class="container">barchart</div>
         <div id="map" class="container">map</div>
     </div>
+    -->
 
 <script>
 d3.csv("911_clean.csv", function(error, csv) {
@@ -363,12 +365,19 @@ var svg = svgGlob.append("g")
 //info focus
 
 var ingFocus = svgGlob.append("g")
-    .attr("transform", "translate(" + (width*5)/7 + "," + (5*height/7) + ")");
+    .attr("transform", "translate(" + (width*5)/8 + "," + (5*height/6) + ")");
 
 var inFocus = ingFocus.append("text")
     .text("All time")
     .attr("font-family", "sans-serif")
     .attr("font-size", 14)
+    .attr("text-anchor", "start");
+
+var descFocus = ingFocus.append("text")
+    .attr("transform", "translate(0," + (-height/14) + ")")
+    .text("")
+    .attr("font-family", "sans-serif")
+    .attr("font-size", 10)
     .attr("text-anchor", "start");
 
 //reset focus
@@ -467,14 +476,20 @@ function getFlatData(csv, date) {
 }
 
 var currentCategory = [];
+var totalCalls;
+var isDate;
 
-function UpdateSun(date) {
+function UpdateSun(date, isHeat) {
+  //isDate preventing zoom toggle from happening if day selected from heatmap
+  isDate = !(isHeat == null)
+
+  //reseting path for new data
   svg.selectAll("path").remove();
 
   var fullFlat = getFlatData(csv,date);
   flatData = fullFlat[0];
   var maxV = fullFlat[1];
-  var totalCalls = flatData[0].value;
+  totalCalls = flatData[0].value;
   var arcos = svg.selectAll("path").data(flatData)
 
   //saving old category for same zoom, or initialize
@@ -528,11 +543,12 @@ function UpdateSun(date) {
 
   //binding interactive legend
   gLegendColor.forEach( function(cat,key) {
-      if (key != 0) {
-          var categoryObject = flatData.filter(function(o) {
-              return o.data.key == categories[key] })[0];
-          gLegendColor[key].on("click", function() {click(categoryObject)});
-      };
+        if (key != 0) {
+            var categoryObject = flatData.filter(function(o) { return o.data.key == categories[key] })[0];
+            gLegendColor[key].on("click", function() {
+                click(categoryObject);
+            });
+        }
   });
 
 }
@@ -542,7 +558,7 @@ UpdateSun();
 //listening to a dayEvent
 document.addEventListener("dayEvt", function(e) {
     console.log("updating sunburst to", e.detail); 
-    UpdateSun(e.detail);
+    UpdateSun(e.detail, true);
     inFocus.text(e.detail);
     resgFocus.attr("visibility", "");
 });
@@ -550,10 +566,19 @@ document.addEventListener("dayEvt", function(e) {
 var button = document.createElement("button");
 
 function click(d) {
+  //isDay is true (and existing) if a day is currently selected
+
   //send category event
   var catEvent = new CustomEvent('catEvt', { detail : d.data.key });
   //sending catEvent to other viz
   document.dispatchEvent(catEvent);
+
+  var previousCategory = currentCategory;
+
+  //if click on same, toggle and go back to general view
+  d = (JSON.stringify(previousCategory) == JSON.stringify([d.data.key,d.data.value]) && !isDate) ? flatData[0] : d
+
+  isDate = false;
 
   currentCategory = [d.data.key,d.data.value];
 
@@ -561,14 +586,16 @@ function click(d) {
   var indexCat = categories.indexOf(currentCategory[0]);
 
   if (indexCat === -1) {
+    descFocus.text(currentCategory[0]);
     var categoryChild = flatData.filter(function(o) {return (o.data.key == currentCategory[0] && o.data.value == currentCategory[1]) })[0];
-    indexCat = categories.indexOf(categoryChild.parent.data.key)};
+    indexCat = categories.indexOf(categoryChild.parent.data.key)
+  } else { descFocus.text(""); };
 
-  if (indexCat === 0) {
+  if (indexCat === 0) { 
     //reset
     gLegend.selectAll("g").attr("opacity", 1);
   } else {
-    gLegend.selectAll("g").attr("opacity", 0.5);
+    gLegend.selectAll("g").attr("opacity", 0.2);
     gLegendColor[indexCat].attr("opacity", 1);
   }
 
