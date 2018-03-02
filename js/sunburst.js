@@ -43,7 +43,7 @@ var svg = svgGlob.append("g")
 //info focus
 
 var ingFocus = svgGlob.append("g")
-    .attr("transform", "translate(" + (width*5)/8 + "," + (5*height/6) + ")");
+    .attr("transform", "translate(" + (width*5)/7 + "," + (2*height/3) + ")");
 
 var inFocus = ingFocus.append("text")
     .text("All time")
@@ -51,12 +51,13 @@ var inFocus = ingFocus.append("text")
     .attr("font-size", 14)
     .attr("text-anchor", "start");
 
-var descFocus = ingFocus.append("text")
+var descFocus = svg.append("text")
     .attr("transform", "translate(0," + (-height/14) + ")")
     .text("")
     .attr("font-family", "sans-serif")
     .attr("font-size", 10)
-    .attr("text-anchor", "start");
+    .attr("transform", "translate(" + 0 + "," + (height/2) + ")")
+    .attr("text-anchor", "middle");
 
 //reset focus
 
