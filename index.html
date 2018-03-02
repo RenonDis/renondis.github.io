@@ -5,6 +5,10 @@
     <meta charset="utf-8">
     <title>911 Data Visualization</title>
     <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+    <script type="text/javascript" src="js/heatmap.js"></script>
+    <script type="text/javascript" src="js/sunburst.js"></script>
+    <script type="text/javascript" src="js/fullmap.js"></script>
+    <script type="text/javascript" src="js/barchart.js"></script>
 </head>
 
 <style>
@@ -21,6 +25,7 @@
       flex-flow: row wrap;
       justify-content: space-around;
       align-content: space-around;
+      font-family: Sans;
     }
 
     .container {
@@ -28,7 +33,6 @@
     }
 
     #sunburst {
-        /*background-color: rgb(255,200,255);*/
         width: 400px;
         height: 280px;
     }
@@ -39,15 +43,13 @@
     }
 
     #barchart {
-        background-color: rgb(200,255,200);
-        width: 440px; /* 400 */
+        width: 440px; 
         height: 350px;
     }
 
     #map {
-        background-color: rgb(200,200,255);
-        width: 800px; /* 800 */
-        height: 400px; /* 550 */
+        width: 800px; 
+        height: 350px;
     }
 
     /* style for heatmap */
@@ -64,6 +66,11 @@
         cursor: pointer;
     }
 
+    #titleViz {
+        width: 600px;
+        margin-bottom:1em;
+    }
+
 </style>
 
 <!-- HTML backbone -->
@@ -75,265 +82,22 @@
         <div id="heat" class="container"></div>
     </div>
     <div class="vizrow">
-        <div id="barchart" class="container">barchart</div>
-        <div id="map" class="container">map</div>
+        <div id="titleViz">
+            911 calls in Montgomery County
+        </div>
+    </div>
+    <div class="vizrow">
+        <div id="barchart" class="container"></div>
+        <div id="map" class="container"></div>
     </div>
 
 <script>
-d3.csv("911_clean.csv", function(error, csv) {
-
-if (error) throw error;
-
-var categories = ["General", "Traffic", "Fire", "EMS"];
 
 //----------
-//HEATMAP
-
-function heatmap(csv) {
-
-var width = 760,
-    height = 100,
-    cellSize = 13;
-
-var formatPercent = d3.format(".1%");
-
-var svg = d3.select("#heat")
-  .selectAll("svg")
-  .data(d3.range(2016, 2018))
-  .enter().append("svg")
-    .attr("width", width)
-    .attr("height", height)
-  .append("g")
-    .attr("transform", "translate(" + ((width - cellSize * 53) / 2) + "," + (height - cellSize * 7 - 1) + ")");
-
-svg.append("text")
-    .attr("transform", "translate(-6," + cellSize * 3.5 + ")rotate(-90)")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 10)
-    .attr("text-anchor", "middle")
-    .text(function(d) { return d; });
-
-var rect = svg.append("g")
-    .attr("fill", "none")
-    .attr("stroke", "#ccc")
-  .selectAll("rect")
-  .data(function(d) { return d3.timeDays(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
-  .enter().append("rect")
-    .attr("width", cellSize)
-    .attr("height", cellSize)
-    .attr("x", function(d) { return d3.timeWeek.count(d3.timeYear(d), d) * cellSize; })
-    .attr("y", function(d) { return d.getDay() * cellSize; })
-    .datum(d3.timeFormat("%Y-%m-%d"));
-
-
-svg.append("g")
-    .attr("fill", "none")
-    .attr("stroke", "black")
-  .selectAll("path")
-  .data(function(d) { return d3.timeMonths(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
-  .enter().append("path")
-    .attr("d", pathMonth);
-
-function pathMonth(t0) {
-  var t1 = new Date(t0.getFullYear(), t0.getMonth() + 1, 0),
-      d0 = t0.getDay(), w0 = d3.timeWeek.count(d3.timeYear(t0), t0),
-      d1 = t1.getDay(), w1 = d3.timeWeek.count(d3.timeYear(t1), t1);
-  return "M" + (w0 + 1) * cellSize + "," + d0 * cellSize
-      + "H" + w0 * cellSize + "V" + 7 * cellSize
-      + "H" + w1 * cellSize + "V" + (d1 + 1) * cellSize
-      + "H" + (w1 + 1) * cellSize + "V" + 0
-      + "H" + (w0 + 1) * cellSize + "Z";
-}
-
-// Building Legend
-
-var defs = svg.append("defs");
-var linearGradient = defs.append("linearGradient")
-    .attr("id", "linear-gradient");
-
-linearGradient
-    .attr("x1", "0%")
-    .attr("y1", "0%")
-    .attr("x2", "100%")
-    .attr("y2", "0%");
-
-var colorPick = {
-    "General" : [0, 0.3, 0.6, 1],
-    "EMS" : [0, 0.6, 0.9, 1],
-    "Traffic" : [0, 0.1, 0.5, 1],
-    "Fire" : [0, 0.2, 0.5, 1],
-}
-
-var primaryColors = ["white","#ffff99","green","black"];
-var color = d3.scaleLinear()
-    .domain(colorPick["General"])
-    .range(primaryColors);
-
-function getGradient(c) {
-
-    linearGradient.selectAll("stop").remove();
-
-    colorPick[c].forEach( function(v,k) {
-        var offset = String(v*100)+"%";
-        linearGradient.append("stop") 
-            .attr("offset", offset)   
-            .attr("stop-color", primaryColors[k]);
-        });
-};
-
-getGradient("General");
-
-var legLength = 450;
-var offset = 2*cellSize;
-
-var legend = d3.select("svg:last-of-type")
-        .attr("height", 180)
-	.append("g")
-        .attr("width", legLength)
-        .attr("transform", "translate(" + ((-legLength+width)/2) + "," + cellSize * 9 + ")")
-
-legend.append("rect")
-        .attr("stroke", "#ccc")
-	.attr("width", legLength-50)
-	.attr("height", cellSize)
-	.style("fill", "url(#linear-gradient)")
-    .attr("transform", "translate(25," + (offset) + ")");
-
-//nb d'appel sur le day hover
-gtooltip = legend.append("g").attr("class","toolcl")
-    .attr("transform", "translate(25," + (cellSize) + ")")
-    
-tooltip = gtooltip.append("text")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 10)
-    .attr("text-anchor", "middle")
-    .text("0");
-
-tooltip2 = gtooltip.append("text")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 10)
-    .attr("text-anchor", "middle")
-    .attr("transform","translate(0,-15)")
-    .text("Hover the grid!");
-
-gtooltip.append("g").attr("id","arrowtool");
-
-var polyarrow = '<g transform="scale(0.2) translate(-50,-9)"> <polygon points="75,40.034 70.758,35.794 49.958,56.558 29.158,35.794 24.916,40.034 49.926,64.999 49.958,64.968 49.99,64.999 "></polygon></g>';
-
-document.getElementById("arrowtool").innerHTML = polyarrow;
-
-legend.append("text")
-    .attr("transform", "translate(25," + (offset + cellSize*2) + ")")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 10)
-    .attr("text-anchor", "middle")
-    .text("0");
-
-var maxLeg = legend.append("text")
-    .attr("transform", "translate(" + (legLength-25) + "," + (cellSize*2 + offset) + ")")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 10)
-    .attr("text-anchor", "middle")
-
-//Injecting data
-
-
-function fillIn(category,csv) {
-
-    color.domain(colorPick["General"]);
-    getGradient("General");
-
-    switch (categories.indexOf(category)) {
-        case -1:
-            csv = csv.filter(function(o) { return o.description === category; });
-            break;
-        case 0:
-            break;
-        default:
-            csv = csv.filter(function(o) { return o.category === category; });
-            color.domain(colorPick[category]);
-            getGradient(category);
-    };
-
-    var data = d3.nest()
-        .key(function(d) { return d.date; })
-        .rollup(function(day) { return day.length })
-        .entries(csv)
-
-    var maxcalls = 0;
-
-    data.forEach(function(day) {
-        if (day.value > maxcalls) {maxcalls = day.value;}
-    });
-
-    console.log(maxcalls);
-    console.log(d3.mean(data, function(d) { return d.value }));
-
-    maxLeg.text(maxcalls);
-    
-    rect.transition()
-        .attr("fill", function(d) { 
-            var colorto;
-            data.forEach(function(day) {
-                if (day.key === d) {colorto = color(day.value/maxcalls);}
-            })
-            return colorto; })
-        
-        rect.on("mouseover", function(d) {
-            var ncall = 0;
-            data.forEach(function(day) {
-                if (day.key === d) {ncall = day.value}
-            });
-
-            tooltip2.text(d);
-            tooltip.text(ncall);
-            
-            gtooltip.transition()
-                .attr("transform", "translate(" + (25 + ncall/maxcalls*(legLength-50)) + "," + (cellSize) + ")")
-            
-            d3.select(this).classed("hover",true);
-            })
-        .on('mouseout', function() {
-            d3.select(this).classed("hover",false);
-            })
-        .on('click', function(day) {
-            var dayEvent = new CustomEvent('dayEvt', { detail : day });
-            //sending dayEvent to other viz
-            document.dispatchEvent(dayEvent);
-        });
-};
-
-fillIn("General",csv);
-
-//listening to a catEvent
-document.addEventListener("catEvt", function(e) {console.log("updating heat to", e.detail); fillIn(e.detail,csv)});
-
-}
-
-//----------
-//SUNBURST
-
-function sunburst(csv) {
-
-var width = 400,
-    height = 280,
-    widthOff = width - height,
-    radius = (Math.min(width, height) / 2);
-
-var formatNumber = d3.format(",d");
-
-var x = d3.scaleLinear()
-    .range([0, 2 * Math.PI]);
-
-var y = d3.scaleSqrt()
-    .range([0, radius]);
-
-var color = d3.scaleOrdinal(d3.schemeCategory20c);
-var primaryColors = ["white","rgb(255, 66, 26)", "rgb(251, 147, 33)" , "rgb(74, 189, 172)"];
-
-var color = d3.scaleOrdinal() // D3 Version
-  .domain(categories)
-  .range(primaryColors);
+//GLOBAL PARAMETERS
+const transitionTime = 2000,
+    categories = ["General", "Traffic", "Fire", "EMS"],
+    primaryColors = ["white","rgb(255, 66, 26)", "rgb(251, 147, 33)" , "rgb(74, 189, 172)"];
 
 var colorRanges = {}
 
@@ -341,291 +105,31 @@ primaryColors.forEach( function(disColor,key) {
     colorRanges[categories[key]] = d3.scaleLinear()
         .domain([-0.6, 1])
         .range(["white", disColor]);
-    });
-
-var partition = d3.partition();
-var radiusOff = 0.2;
-
-var arc = d3.arc()
-    .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x0))); })
-    .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x1))); })
-    .innerRadius(function(d) { return Math.max(0, y(d.y0))-40; })
-    .outerRadius(function(d) { return Math.max(0, y(d.y1))-30; });
-
-
-var svgGlob = d3.select("#sunburst").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-var svg = svgGlob.append("g")
-    .attr("transform", "translate(" + (width - widthOff)/2 + "," + (height / 2) + ")");
-
-//info focus
-
-var ingFocus = svgGlob.append("g")
-    .attr("transform", "translate(" + (width*5)/8 + "," + (5*height/6) + ")");
-
-var inFocus = ingFocus.append("text")
-    .text("All time")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 14)
-    .attr("text-anchor", "start");
-
-var descFocus = ingFocus.append("text")
-    .attr("transform", "translate(0," + (-height/14) + ")")
-    .text("")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 10)
-    .attr("text-anchor", "start");
-
-//reset focus
-
-var resgFocus = ingFocus.append("g")
-    .classed("resFocus", true)
-    .attr("transform", "translate(0," + (height/20) + ")")
-    .attr("opacity", ".5")
-    .attr("visibility", "hidden")
-    .on("hover", function() { d3.select(this).transition().attr("opacity",1) })
-    .on("click", function() {
-        UpdateSun();
-        inFocus.text("All time");
-        d3.select(this).attr("visibility", "hidden");
-    });
-
-resgFocus.append("rect") 
-    .attr("stroke-width", "2px")
-    .attr("stroke", "black")
-    .attr("fill", "#eee")
-    .attr("width", width/8)
-    .attr("height", height/10);
-
-resgFocus.append("text")
-    .attr("transform", "translate("+ width/16 + "," + (height/20 + 4) + ")")
-    .text("reset")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 14)
-    .attr("text-anchor", "middle");
-
-//Legend
-
-var gLegend = svgGlob.append("g")
-    .attr("transform", "translate(" + (width*5)/7 + "," + (height/20) + ")")
-
-var gLegendColor = ["General"];
-
-primaryColors.forEach( function(disColor,key) {
-    if (disColor != "white") {
-    
-    var categoryIn = categories[key];
-    //var categoryObject = flatData.filter(function(o) { return o.data.key === categoryIn })[0];
-
-    var gColor = gLegend.append("g")
-        .attr("transform", "translate(0," + ((key-1) * height/7) + ")")
-        .attr("opacity", 1)
-        //.click("on", click(categoryObject));
-
-    gColor.append("rect")
-        .attr("width", width/8)
-        .attr("height", height/10)
-        .attr("fill",disColor);
-
-    gColor.append("text").text(categoryIn)
-        .attr("transform", "translate(" + width/7 + "," + (height/14) + ")")
-        .attr("font-family", "sans-serif")
-        .attr("font-size", 14)
-        .attr("text-anchor", "start");
-
-    gLegendColor.push(gColor);
-    }
 });
 
-var flatData;
 
-function getFlatData(csv, date) { 
+//----------
+//LOADING DATA
+d3.csv("data/911_clean.csv", function(error, csv) {
 
-  if (date) {
-      csv = csv.filter(function(o) { return o.date === date; });
-  };
+if (error) throw error;
 
-  var nestedData = d3.nest()
-      .key(function(d) { return d.category; })
-      .key(function(d) { return d.description; })
-      .rollup(function(calls) { return calls.length; })
-      .entries(csv)
 
-  var maxV = {}
-
-  nestedData.forEach(function(cat,key) {
-    nestedData[key].values = cat.values.sort(function(a, b){ 
-          return d3.descending(a.value, b.value); });
-    maxV[cat.key] = Math.max.apply(Math, cat.values.map(function(o){return o.value}));
-    });
-
-  var nestedData = { key:"General", values:nestedData };
-
-  var nestedData = JSON.parse(JSON.stringify(nestedData)
-    .split('"values":')
-    .join('"children":')
-    );
-
-  dataTree = d3.hierarchy(nestedData).sum(function(d) { return d.value; });
-
-  return [partition(dataTree).descendants(),maxV];
-}
-
-var currentCategory = [];
-var totalCalls;
-var isDate;
-
-function UpdateSun(date, isHeat) {
-  //isDate preventing zoom toggle from happening if day selected from heatmap
-  isDate = !(isHeat == null)
-
-  //reseting path for new data
-  svg.selectAll("path").remove();
-
-  var fullFlat = getFlatData(csv,date);
-  flatData = fullFlat[0];
-  var maxV = fullFlat[1];
-  totalCalls = flatData[0].value;
-  var arcos = svg.selectAll("path").data(flatData)
-
-  //saving old category for same zoom, or initialize
-  if (currentCategory.length > 0) {
-      var previousCategory = currentCategory;
-  } else {
-      currentCategory = ["General",totalCalls];
-  };
-
-  //reseting zoom on General
-  //if (previousCategory != "General") click(flatData[0]);
-
-  arcos.enter().append("path")
-      .attr("stroke", "white")
-      .attr("stroke-width", "3px")
-      .style("fill", function(d) {
-        if(d.children) {
-            return color(d.data.key);
-        } else {
-            var parentColor = d.parent.data.key;
-            var localMax = maxV[parentColor];
-            
-            return colorRanges[parentColor](d.value/localMax);
-        }
-      })
-      .on("click", click)
-
-  svg.selectAll("path").append("title")
-      .text(function(d) { return d.data.key + "\n" + formatNumber(d.value); });
-
-  var arcos = svg.selectAll("path").data(flatData)
-
-  arcos.transition()
-      .duration(300)
-      .delay(function(d,i) {
-          if (categories.indexOf(d.data.key) === -1) {
-              return (500*(d.data.value/totalCalls))+1200;
-          } else {
-              return i*300;
-          }
-      })
-      .attrTween("d", arcTweenUpdate);
-
-  //zooming back to the previousCategory
-  if (previousCategory && previousCategory[0] != "General") {
-      var categoryObject = flatData.filter(function(o) { 
-          return (o.data.key == previousCategory[0]);
-      })[0];
-      click(categoryObject);
-  };
-
-  //binding interactive legend
-  gLegendColor.forEach( function(cat,key) {
-        if (key != 0) {
-            var categoryObject = flatData.filter(function(o) { return o.data.key == categories[key] })[0];
-            gLegendColor[key].on("click", function() {
-                click(categoryObject);
-            });
-        }
-  });
-
-}
-
-UpdateSun();
-
-//listening to a dayEvent
-document.addEventListener("dayEvt", function(e) {
-    console.log("updating sunburst to", e.detail); 
-    UpdateSun(e.detail, true);
-    inFocus.text(e.detail);
-    resgFocus.attr("visibility", "");
-});
-
-var button = document.createElement("button");
-
-function click(d) {
-  //isDay is true (and existing) if a day is currently selected
-
-  //send category event
-  var catEvent = new CustomEvent('catEvt', { detail : d.data.key });
-  //sending catEvent to other viz
-  document.dispatchEvent(catEvent);
-
-  var previousCategory = currentCategory;
-
-  //if click on same, toggle and go back to general view
-  d = (JSON.stringify(previousCategory) == JSON.stringify([d.data.key,d.data.value]) && !isDate) ? flatData[0] : d
-
-  isDate = false;
-
-  currentCategory = [d.data.key,d.data.value];
-
-  //linking legend
-  var indexCat = categories.indexOf(currentCategory[0]);
-
-  if (indexCat === -1) {
-    descFocus.text(currentCategory[0]);
-    var categoryChild = flatData.filter(function(o) {return (o.data.key == currentCategory[0] && o.data.value == currentCategory[1]) })[0];
-    indexCat = categories.indexOf(categoryChild.parent.data.key)
-  } else { descFocus.text(""); };
-
-  if (indexCat === 0) { 
-    //reset
-    gLegend.selectAll("g").attr("opacity", 1);
-  } else {
-    gLegend.selectAll("g").attr("opacity", 0.2);
-    gLegendColor[indexCat].attr("opacity", 1);
-  }
-
-  svg.transition()
-      .duration(350)
-      .tween("scale", function() {
-        var xd = d3.interpolate(x.domain(), [d.x0, d.x1]),
-            yd = d3.interpolate(y.domain(), [d.y0, 1]),
-            yr = d3.interpolate(y.range(), [d.y0 ? 100 : 0, radius]);
-        return function(t) { x.domain(xd(t)); y.domain(yd(t)).range(yr(t)); };
-      })
-    .selectAll("path")
-      .attrTween("d", function(d) { return function() { return arc(d); }; });
-      return d.data.key;
-}
-
-function arcTweenUpdate(a,i) {
-    var oi = d3.interpolate({x0: 0, x1: 0}, a);  
-    function tween(t) {
-      var b = oi(t);
-      return arc(b);
-    }
-      return tween;
-}
-}
-
-function map(csv) {}
-
-function barchart(csv) {}
-
+//----------
+//HEATMAP
 heatmap(csv);
+
+//----------
+//SUNBURST
 sunburst(csv);
+
+//----------
+//GEOMAP
+map(csv);
+
+//----------
+//BARCHART
+barchart(csv);
 
 });
 </script>
