@@ -72,6 +72,11 @@ var resgFocus = ingFocus.append("g")
         //sending dayEvent to other viz
         document.dispatchEvent(dayEvent);
 
+        //reseting map with resetEvt
+        var resetEvent = new CustomEvent('resetEvt', { detail : "" });
+        //sending dayEvent to other viz
+        document.dispatchEvent(resetEvent);
+
         inFocus.text("All time");
         d3.select(this).attr("visibility", "hidden");
     });
