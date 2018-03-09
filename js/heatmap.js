@@ -215,7 +215,8 @@ function fillIn(category,csv) {
 
     maxLeg.text(maxcalls);
     
-    rect.transition()
+    rect.classed("clikable", true)
+        .transition()
         .delay(function(d,i) {return i*delayFill;})
         .attr("fill", function(d) { 
             var colorto;

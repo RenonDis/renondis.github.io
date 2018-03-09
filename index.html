@@ -67,6 +67,15 @@
         cursor: pointer;
     }
 
+    .clikable {
+        cursor: pointer;
+        transition: stroke-width 0.2s ease-out;
+    }
+    
+    .clikable:hover {
+        stroke-width:1px;
+    }
+
     #titleViz {
         font-weight: bold;
         width: 700px;
@@ -85,7 +94,7 @@
     </div>
     <div class="vizrow">
         <div id="titleViz">
-            911 calls in Montgomery County (PA)
+            911 calls in Montgomery County (PA) [ <a href=https://github.com/RenonDis/911Vis>?</a> ]
         </div>
     </div>
     <div class="vizrow">

@@ -99,6 +99,7 @@ resgFocus.append("text")
 //legend
 
 var gLegend = svgGlob.append("g")
+    .classed("clikable", true)
     .attr("transform", "translate(" + (width*5)/7 + "," + (height/20) + ")")
 
 var gLegendColor = ["General"];
@@ -198,6 +199,8 @@ function UpdateSun(date, isHeat) {
   };
 
   arcos.enter().append("path")
+      .style("cursor", "pointer")
+      .classed("clikable", true)
       .attr("stroke", "white")
       .attr("stroke-width", "3px")
       .style("fill", function(d) {
